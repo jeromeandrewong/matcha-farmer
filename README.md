@@ -1,6 +1,6 @@
 # Marukyu Koyamaen Stock Checker
 
-This is a simple serverless application that checks the stock of Marukyu Koyamaen products.
+This is a simple serverless application that scrapes the stock of Marukyu Koyamaen ceremonial matcha products and sends the result to a Telegram bot.
 
 ![tele bot demo](./public/marukyukoyamaen.png)
 
@@ -27,7 +27,7 @@ The project is deployed on AWS with the following components:
     - response time not critical (so cold starts not a problem)
     - I don’t need continuous server uptime (don’t need ec2)
 
-2. **Amazon CloudWatch Events**
+2. **AWS EventBridge (CloudWatch Events)**
     - Provides a reliable way to trigger Lambda functions on a schedule.
     - Serverless and fully managed by AWS.
     - Integrates seamlessly with Lambda.
