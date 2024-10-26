@@ -14,12 +14,53 @@ import (
 )
 
 type Product struct {
-	Title       string
-	Status      string
-	LastChecked time.Time
+	Title  string
+	Status string
 }
 
-func sendTeleNotification(message string) error {
+type StockChecker struct {
+	products  []Product
+	collector *colly.Collector
+}
+
+func NewStockChecker() *StockChecker {
+	return &StockChecker{
+		collector: colly.NewCollector(
+			colly.AllowedDomains("www.marukyu-koyamaen.co.jp"),
+		),
+	}
+}
+
+func (sc *StockChecker) ScrapeProducts() error {
+	sc.collector.OnHTML("li.product", func(e *colly.HTMLElement) {
+		title := e.ChildAttr("a.woocommerce-loop-product__link", "title")
+		status := "❌ Out of Stock"
+		if !strings.Contains(e.Attr("class"), "outofstock") {
+			status = "✅ In Stock"
+		}
+		sc.products = append(sc.products, Product{Title: title, Status: status})
+	})
+
+	return sc.collector.Visit("https://www.marukyu-koyamaen.co.jp/english/shop/products/category/matcha/principal/")
+}
+
+func (sc *StockChecker) FormatMessage() string {
+	singaporeLocation, _ := time.LoadLocation("Asia/Singapore")
+	singaporeTime := time.Now().In(singaporeLocation)
+
+	message := "Marukyu Koyamaen Stock Check:\n\n"
+	message += fmt.Sprintf("🕜 Last Checked: %s\n\n", singaporeTime.Format("Mon, 2 Jan 3:04 PM"))
+
+	for _, product := range sc.products {
+		message += fmt.Sprintf("🍵 Name: %s\n📦 Status: %s\n\n",
+			product.Title,
+			product.Status)
+	}
+
+	return message
+}
+
+func sendTelegramNotification(message string) error {
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	chatID := os.Getenv("TELEGRAM_CHAT_ID")
 
@@ -38,6 +79,7 @@ func sendTeleNotification(message string) error {
 	if err != nil {
 		return err
 	}
+
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
@@ -45,48 +87,19 @@ func sendTeleNotification(message string) error {
 	}
 
 	return nil
-
 }
 
 func HandleRequest(ctx context.Context) (string, error) {
-	c := colly.NewCollector(
-		colly.AllowedDomains("www.marukyu-koyamaen.co.jp"),
-	)
+	checker := NewStockChecker()
 
-	products := []Product{}
-
-	c.OnHTML("li.product", func(e *colly.HTMLElement) {
-		title := e.ChildAttr("a.woocommerce-loop-product__link", "title")
-		status := "❌ Out of Stock"
-		if !strings.Contains(e.Attr("class"), "outofstock") {
-			status = "✅ In Stock"
-		}
-		products = append(products, Product{
-			Title:       title,
-			Status:      status,
-			LastChecked: time.Now(),
-		})
-	})
-
-	err := c.Visit("https://www.marukyu-koyamaen.co.jp/english/shop/products/category/matcha/principal/")
+	err := checker.ScrapeProducts()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to scrape products: %v", err)
 	}
 
-	singaporeLocation, _ := time.LoadLocation("Asia/Singapore")
-	singaporeTime := time.Now().In(singaporeLocation)
+	message := checker.FormatMessage()
 
-	message := "Marukyu Koyamaen Stock Check:\n\n"
-
-	message += fmt.Sprintf("🕜 Last Checked: %s\n\n", singaporeTime.Format("Mon, 2 Jan 3:04 PM"))
-
-	for _, product := range products {
-		message += fmt.Sprintf("🍵 Name: %s\n📦 Status: %s\n\n",
-			product.Title,
-			product.Status)
-	}
-
-	err = sendTeleNotification(message)
+	err = sendTelegramNotification(message)
 	if err != nil {
 		return "", fmt.Errorf("failed to send Telegram notification: %v", err)
 	}
