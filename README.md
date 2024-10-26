@@ -23,22 +23,14 @@ The project is deployed on AWS with the following components:
 ### AWS Services Used
 
 1. **AWS Lambda**
-   - Reasons for use:
-     - Serverless: No need to manage servers.
-     - Cost-effective: Pay only for the compute time used.
-     - Scalable: Automatically handles scaling.
-     - Integrates well with other AWS services.
+    - good for intermittent work; pay per use (cost efficiency)
+    - response time not critical (so cold starts not a problem)
+    - I don’t need continuous server uptime (don’t need ec2)
 
 2. **Amazon CloudWatch Events**
-   - Reasons for use:
-     - Provides a reliable way to trigger Lambda functions on a schedule.
-     - Serverless and fully managed by AWS.
-     - Integrates seamlessly with Lambda.
-
-3. **AWS IAM**
-   - Reasons for use:
-     - Manages permissions for the Lambda function.
-     - Ensures principle of least privilege.
+    - Provides a reliable way to trigger Lambda functions on a schedule.
+    - Serverless and fully managed by AWS.
+    - Integrates seamlessly with Lambda.
 
 ## Deployment
 
