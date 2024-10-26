@@ -2,7 +2,10 @@ module github.com/jeromeandrewong/matcha-farmer
 
 go 1.22.1
 
-require github.com/gocolly/colly/v2 v2.1.0
+require (
+	github.com/aws/aws-lambda-go v1.47.0
+	github.com/gocolly/colly/v2 v2.1.0
+)
 
 require (
 	github.com/PuerkitoBio/goquery v1.5.1 // indirect
